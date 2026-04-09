@@ -1,0 +1,29 @@
+name: safedig-agent
+version: "1.0.0"
+description: >
+  A safety-critical RL environment where an agent decides whether
+  it is safe to approve, postpone, or modify a hazardous digging task
+  based on sensor readings (gas, stability, earthquake risk, equipment).
+tasks:
+  - id: easy
+    description: Clearly safe or clearly dangerous scenarios
+    difficulty: easy
+  - id: medium
+    description: Mixed conditions requiring careful judgment
+    difficulty: medium
+  - id: hard
+    description: Borderline sensor values — requires nuanced reasoning
+    difficulty: hard
+action_space:
+  type: discrete
+  choices: [approve, postpone, scale_down, mandate_safety]
+observation_space:
+  - gas_co_ppm: float
+  - gas_h2s_ppm: float
+  - methane_pct: float
+  - roof_stability: float
+  - earthquake_risk: float
+  - ventilation_on: bool
+  - support_beams_ok: bool
+  - last_near_miss_days: int
+reward_range: [0.0, 1.0]
