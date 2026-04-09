@@ -1,244 +1,200 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import Literal
-from environment import SafeDigEnvironment
-from models import SafeDigAction, SafeDigObservation, SafeDigState
+import random
+from typing import List, Dict, Any
 
-app = FastAPI(
-    title="SafeDig RL Environment",
-    description="A safety-critical RL environment for mining task safety decisions",
-    version="1.0.0"
-)
+app = FastAPI(title="SafeDig Environment API")
 
-env = SafeDigEnvironment()
+class Action(BaseModel):
+    action: int  # 0=approve, 1=postpone, 2=scale_down, 3=mandate_safety
 
-# Request model with proper documentation
 class ResetRequest(BaseModel):
-    """Request to reset the environment"""
-    difficulty: Literal["easy", "medium", "hard"] = "easy"
+    difficulty: str = "easy"
+
+class EnvironmentState:
+    def __init__(self):
+        self.reset("easy")
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "difficulty": "easy"
-            }
+    def reset(self, difficulty: str = "easy"):
+        if difficulty == "easy":
+            self.gas_co_ppm = random.uniform(5, 20)
+            self.gas_h2s_ppm = random.uniform(2, 8)
+            self.methane_pct = random.uniform(0.1, 0.5)
+            self.roof_stability = random.uniform(0.7, 0.95)
+            self.earthquake_risk = random.uniform(0.1, 0.3)
+        elif difficulty == "medium":
+            self.gas_co_ppm = random.uniform(15, 40)
+            self.gas_h2s_ppm = random.uniform(8, 15)
+            self.methane_pct = random.uniform(0.3, 1.0)
+            self.roof_stability = random.uniform(0.5, 0.8)
+            self.earthquake_risk = random.uniform(0.2, 0.5)
+        else:  # hard
+            self.gas_co_ppm = random.uniform(30, 70)
+            self.gas_h2s_ppm = random.uniform(12, 25)
+            self.methane_pct = random.uniform(0.8, 1.8)
+            self.roof_stability = random.uniform(0.3, 0.6)
+            self.earthquake_risk = random.uniform(0.4, 0.8)
+        
+        self.ventilation_on = True
+        self.support_beams_ok = True
+        self.last_near_miss_days = random.randint(1, 30)
+        self.step_count = 0
+        self.accidents = 0
+        self.difficulty = difficulty
+        self.total_reward = 0.0
+        
+        return self.get_observation()
+    
+    def get_observation(self) -> Dict[str, Any]:
+        return {
+            "gas_co_ppm": round(self.gas_co_ppm, 2),
+            "gas_h2s_ppm": round(self.gas_h2s_ppm, 2),
+            "methane_pct": round(self.methane_pct, 2),
+            "roof_stability": round(self.roof_stability, 2),
+            "earthquake_risk": round(self.earthquake_risk, 2),
+            "ventilation_on": self.ventilation_on,
+            "support_beams_ok": self.support_beams_ok,
+            "last_near_miss_days": self.last_near_miss_days,
+            "step_count": self.step_count,
+            "accidents": self.accidents,
+            "difficulty": self.difficulty,
+            "message": f"Environment ready - {self.difficulty.upper()} difficulty"
+        }
+    
+    def calculate_risk_score(self) -> float:
+        risks = []
+        if self.gas_co_ppm > 70: risks.append(1.0)
+        elif self.gas_co_ppm > 35: risks.append(0.7)
+        else: risks.append(0.2)
+        
+        if self.gas_h2s_ppm > 20: risks.append(1.0)
+        elif self.gas_h2s_ppm > 5: risks.append(0.7)
+        else: risks.append(0.2)
+        
+        if self.methane_pct > 1.5: risks.append(1.0)
+        elif self.methane_pct > 0.5: risks.append(0.7)
+        else: risks.append(0.2)
+        
+        if self.roof_stability < 0.4: risks.append(1.0)
+        elif self.roof_stability < 0.7: risks.append(0.7)
+        else: risks.append(0.2)
+        
+        if self.earthquake_risk > 0.6: risks.append(1.0)
+        elif self.earthquake_risk > 0.2: risks.append(0.7)
+        else: risks.append(0.2)
+        
+        if not self.ventilation_on: risks.append(0.8)
+        if not self.support_beams_ok: risks.append(0.9)
+        if self.last_near_miss_days < 7: risks.append(0.6)
+        
+        return sum(risks) / len(risks) if risks else 0.5
+    
+    def step(self, action: int):
+        action_names = ["approve", "postpone", "scale_down", "mandate_safety"]
+        action_name = action_names[action] if 0 <= action < 4 else "approve"
+        
+        risk_score = self.calculate_risk_score()
+        accident_occurred = False
+        reward = 0
+        message = ""
+        
+        if action_name == "approve":
+            if risk_score < 0.4:
+                reward = 15
+                message = "✅ Safe conditions approved. Operation proceeds smoothly."
+            elif risk_score < 0.7:
+                reward = 5
+                message = "⚠️ Moderate risk approved. Some issues arise but manageable."
+            else:
+                accident_chance = risk_score * (1.5 if self.difficulty == "hard" else 1.0)
+                if random.random() < accident_chance:
+                    reward = -50
+                    accident_occurred = True
+                    message = "🚨 ACCIDENT! High-risk approval led to disaster."
+                    self.accidents += 1
+                else:
+                    reward = -10
+                    message = "❌ High-risk approval barely avoided accident."
+        
+        elif action_name == "postpone":
+            if risk_score > 0.6:
+                reward = 20
+                message = "✅ Excellent decision! Postponing avoided major risks."
+            elif risk_score > 0.3:
+                reward = 10
+                message = "⚠️ Postponing was reasonable."
+            else:
+                reward = -5
+                message = "❌ Unnecessary postponement wasted resources."
+        
+        elif action_name == "scale_down":
+            if risk_score > 0.5:
+                reward = 12
+                message = "✅ Scaling down reduced risk."
+            else:
+                reward = 5
+                message = "ℹ️ Scaled down operations. Safe but less efficient."
+        
+        elif action_name == "mandate_safety":
+            reward = 8 if risk_score > 0.4 else 3
+            message = "🛡️ Additional safety measures implemented."
+            self.ventilation_on = True
+            self.support_beams_ok = True
+        
+        self.step_count += 1
+        self.total_reward += reward
+        
+        self.gas_co_ppm += random.uniform(-5, 8)
+        self.gas_h2s_ppm += random.uniform(-2, 5)
+        self.methane_pct += random.uniform(-0.2, 0.3)
+        self.roof_stability -= random.uniform(0, 0.05)
+        self.earthquake_risk += random.uniform(-0.1, 0.1)
+        
+        self.gas_co_ppm = max(0, min(100, self.gas_co_ppm))
+        self.gas_h2s_ppm = max(0, min(50, self.gas_h2s_ppm))
+        self.methane_pct = max(0, min(3.0, self.methane_pct))
+        self.roof_stability = max(0, min(1.0, self.roof_stability))
+        self.earthquake_risk = max(0, min(1.0, self.earthquake_risk))
+        
+        done = (self.step_count >= 20) or (accident_occurred and self.accidents >= 3)
+        
+        return {
+            "observation": self.get_observation(),
+            "reward": reward,
+            "total_reward": self.total_reward,
+            "message": message,
+            "accident_occurred": accident_occurred,
+            "done": done,
+            "step_count": self.step_count,
+            "accidents": self.accidents
         }
 
-# ✅ Root endpoint with HTML interface
-@app.get("/", response_class=HTMLResponse)
-def root():
-    return """
-    <html>
-        <head>
-            <title>SafeDig RL Environment</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                    padding: 40px 20px;
-                }
-                .container {
-                    max-width: 900px;
-                    margin: 0 auto;
-                    background: white;
-                    border-radius: 12px;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                    padding: 40px;
-                }
-                h1 { 
-                    color: #333;
-                    margin-bottom: 10px;
-                    font-size: 2.5em;
-                }
-                .subtitle { 
-                    color: #666;
-                    margin-bottom: 30px;
-                    font-size: 1.1em;
-                }
-                .section {
-                    margin: 30px 0;
-                    padding: 20px;
-                    background: #f8f9fa;
-                    border-radius: 8px;
-                    border-left: 4px solid #667eea;
-                }
-                .section h2 {
-                    color: #667eea;
-                    margin-bottom: 15px;
-                    font-size: 1.4em;
-                }
-                .endpoints {
-                    list-style: none;
-                }
-                .endpoints li {
-                    padding: 10px 0;
-                    border-bottom: 1px solid #ddd;
-                }
-                .endpoints li:last-child {
-                    border-bottom: none;
-                }
-                .endpoint-name {
-                    background: #667eea;
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-family: monospace;
-                    font-weight: bold;
-                }
-                .actions {
-                    display: flex;
-                    gap: 15px;
-                    margin-top: 30px;
-                    flex-wrap: wrap;
-                }
-                .btn {
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 6px;
-                    font-size: 1em;
-                    cursor: pointer;
-                    text-decoration: none;
-                    display: inline-block;
-                    transition: transform 0.2s;
-                }
-                .btn:hover {
-                    transform: translateY(-2px);
-                }
-                .btn-primary {
-                    background: #667eea;
-                    color: white;
-                }
-                .btn-secondary {
-                    background: #6c757d;
-                    color: white;
-                }
-                .btn-success {
-                    background: #28a745;
-                    color: white;
-                }
-                code {
-                    background: #eee;
-                    padding: 2px 6px;
-                    border-radius: 3px;
-                    font-family: monospace;
-                }
-                .tasks {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                    gap: 15px;
-                    margin-top: 15px;
-                }
-                .task-card {
-                    background: white;
-                    border: 2px solid #667eea;
-                    border-radius: 8px;
-                    padding: 15px;
-                    text-align: center;
-                }
-                .task-card h3 {
-                    color: #667eea;
-                    margin-bottom: 8px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>⛏️ SafeDig RL Environment</h1>
-                <p class="subtitle">AI Agent Safety Decision Making for Mining Operations</p>
-                
-                <div class="section">
-                    <h2>🎯 Problem</h2>
-                    <p>An AI agent must decide whether to approve, postpone, scale down, or mandate safety measures for hazardous mining tasks based on real-time sensor data.</p>
-                </div>
-                
-                <div class="section">
-                    <h2>📊 Task Difficulties</h2>
-                    <div class="tasks">
-                        <div class="task-card">
-                            <h3>🟢 Easy</h3>
-                            <p>Clearly safe or clearly dangerous scenarios</p>
-                        </div>
-                        <div class="task-card">
-                            <h3>🟡 Medium</h3>
-                            <p>Mixed conditions requiring careful analysis</p>
-                        </div>
-                        <div class="task-card">
-                            <h3>🔴 Hard</h3>
-                            <p>Borderline sensor values - nuanced judgment</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="section">
-                    <h2>🔗 API Endpoints</h2>
-                    <ul class="endpoints">
-                        <li><span class="endpoint-name">POST /reset</span> - Start a new episode with difficulty level</li>
-                        <li><span class="endpoint-name">POST /step</span> - Take an action (decision + reasoning)</li>
-                        <li><span class="endpoint-name">GET /state</span> - Get current environment state</li>
-                        <li><span class="endpoint-name">GET /health</span> - Health check endpoint</li>
-                        <li><span class="endpoint-name">GET /docs</span> - Interactive Swagger UI (Try API here!)</li>
-                    </ul>
-                </div>
-                
-                <div class="section">
-                    <h2>🎮 Actions Available</h2>
-                    <ul class="endpoints">
-                        <li><code>approve</code> - Approve the task (high reward if safe, severe penalty if danger)</li>
-                        <li><code>postpone</code> - Delay task (high reward if danger, small penalty if safe)</li>
-                        <li><code>scale_down</code> - Reduce task scope (partial reward both ways)</li>
-                        <li><code>mandate_safety</code> - Add extra safety (good in danger, slight waste if safe)</li>
-                    </ul>
-                </div>
-                
-                <div class="actions">
-                    <a href="/docs" class="btn btn-primary">📖 Try Interactive API</a>
-                    <a href="https://github.com/spiderweb2006/openenv-project" class="btn btn-secondary">💻 View Code</a>
-                </div>
-            </div>
-        </body>
-    </html>
-    """
+env = EnvironmentState()
 
-# Reset endpoint
-@app.post("/reset", response_model=dict)
-def reset(req: ResetRequest = ResetRequest()):
-    """
-    Reset the environment and start a new episode.
-    
-    - **difficulty**: Choose from 'easy', 'medium', or 'hard'
-    """
-    obs = env.reset(difficulty=req.difficulty)
-    return obs.model_dump()
+@app.get("/info")
+async def info():
+    return {
+        "name": "SafeDig Environment",
+        "version": "1.0.0",
+        "actions": ["approve", "postpone", "scale_down", "mandate_safety"],
+        "observation_space": 8,
+        "action_space": 4
+    }
 
-# Step endpoint
-@app.post("/step", response_model=dict)
-def step(action: SafeDigAction):
-    """
-    Take an action in the environment.
-    
-    - **decision**: One of 'approve', 'postpone', 'scale_down', 'mandate_safety'
-    - **reasoning**: Explanation for the decision (optional)
-    """
-    obs = env.step(action)
-    return obs.model_dump()
+@app.post("/reset")
+async def reset(request: ResetRequest):
+    obs = env.reset(difficulty=request.difficulty)
+    return obs
 
-# State endpoint
-@app.get("/state", response_model=dict)
-def state():
-    """Get the current state of the environment."""
-    return env.state.model_dump()
+@app.get("/state")
+async def state():
+    return env.get_observation()
 
-# Health check
-@app.get("/health")
-def health():
-    """Health check endpoint."""
-    return {"status": "ok", "environment": "ready"}
+@app.post("/step")
+async def step(action: Action):
+    result = env.step(action.action)
+    return result
 
-# Exception handler
-@app.get("/")
-def index():
-    """Root endpoint - redirects to HTML interface."""
-    return {"message": "SafeDig RL Environment is running. Visit the web interface above."}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
