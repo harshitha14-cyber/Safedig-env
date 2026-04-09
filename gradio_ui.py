@@ -560,200 +560,149 @@ def run_baseline_agent(difficulty):
 # Build Gradio interface with DARK MODE and repositioned layout
 with gr.Blocks(
     title="SafeDig RL Environment",
-    theme=gr.themes.Soft(),
+    theme=gr.themes.Monochrome(
+        primary_hue="blue",
+        secondary_hue="gray",
+        neutral_hue="gray",
+        font=gr.themes.GoogleFont("Inter"),
+    ),
     css="""
-    /* Dark mode background */
-    .gradio-container { 
-        max-width: 1400px !important;
-        margin: auto !important;
+    /* Force EVERYTHING to dark background */
+    * {
         background-color: #0a0a0a !important;
-        padding: 20px !important;
+        color: #ffffff !important;
     }
-
-    body, .gradio-container, .gr-box, .gr-form, .gr-panel {
+    
+    body, html, .gradio-container, .main, .wrap, .contain {
         background-color: #0a0a0a !important;
     }
-
-    /* Force all text to be white */
-    label, span, div, p, li, .gr-form, .gr-box, .gr-panel, .prose, .markdown-text {
-        color: #ffffff !important;
+    
+    /* Fix all Gradio components */
+    .gr-box, .gr-form, .gr-panel, .gr-group, .gr-block {
+        background-color: #1a1a1a !important;
+        border: 1px solid #2a2a2a !important;
     }
-
-    /* Headers */
-    h1, h2, h3, h4, h5, h6 {
-        color: #ffffff !important;
-        font-weight: 600 !important;
-    }
-
-    /* Markdown content */
-    .markdown-text p, .markdown-text li, .markdown-text span {
-        color: #e0e0e0 !important;
-    }
-
-    /* Tables */
-    table, th, td {
-        color: #ffffff !important;
-        border-color: #4a4a4a !important;
+    
+    /* Fix tabs and accordions */
+    .gr-tabs, .gr-accordion, .tab-nav, .tab-button {
         background-color: #1a1a1a !important;
     }
-
+    
+    /* Fix all input containers */
+    input, textarea, select, .gr-input, .gr-textbox, .gr-number {
+        background-color: #2a2a2a !important;
+        color: #ffffff !important;
+        border: 1px solid #3a3a3a !important;
+    }
+    
+    /* Fix radio button containers */
+    .gr-radio-group, .gr-radio, .gr-radio-group > label {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+    }
+    
+    /* Fix all labels and text */
+    label, span, div, p, li, .gr-label, .gr-info, .gr-form label {
+        color: #ffffff !important;
+        background-color: transparent !important;
+    }
+    
+    /* Fix headers */
+    h1, h2, h3, h4, h5, h6, .gr-markdown h1, .gr-markdown h2, .gr-markdown h3 {
+        color: #ffffff !important;
+        background-color: transparent !important;
+    }
+    
+    /* Fix markdown containers */
+    .gr-markdown, .markdown-text, .prose {
+        background-color: transparent !important;
+        color: #ffffff !important;
+    }
+    
+    /* Fix tables */
+    table, tr, td, th, tbody, thead {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-color: #3a3a3a !important;
+    }
+    
     th {
         background-color: #2a2a2a !important;
-        font-weight: 600 !important;
     }
-
-    td {
-        background-color: #1a1a1a !important;
-    }
-
-    /* Input fields */
-    input, textarea, select {
-        background-color: #2a2a2a !important;
-        color: #ffffff !important;
-        border: 1px solid #4a4a4a !important;
-    }
-
-    input:focus, textarea:focus, select:focus {
-        border-color: #2563eb !important;
-        outline: none !important;
-    }
-
-    /* Labels for inputs */
-    label, .gr-label {
-        color: #ffffff !important;
-        font-weight: 500 !important;
-    }
-
-    /* Buttons */
-    .gr-button {
+    
+    /* Fix buttons */
+    .gr-button, button {
         background-color: #3a3a3a !important;
         color: #ffffff !important;
         border: none !important;
-        font-weight: 500 !important;
     }
-
-    .gr-button:hover {
-        background-color: #4a4a4a !important;
-        transform: translateY(-1px) !important;
-    }
-
+    
     .gr-button-primary {
         background-color: #2563eb !important;
     }
-
+    
     .gr-button-primary:hover {
         background-color: #3b82f6 !important;
     }
-
-    /* Radio buttons */
-    .gr-radio-group {
-        background-color: #1a1a1a !important;
-    }
-
-    .gr-radio-group label {
+    
+    /* Fix number display boxes */
+    .gr-number input {
+        background-color: #2a2a2a !important;
         color: #ffffff !important;
     }
-
-    /* Number displays */
-    .gr-number {
-        background-color: #1a1a1a !important;
+    
+    /* Fix textbox */
+    .gr-textbox textarea, .gr-textbox input {
+        background-color: #2a2a2a !important;
         color: #ffffff !important;
     }
-
-    /* Textbox */
-    .gr-textbox {
-        background-color: #1a1a1a !important;
-    }
-
-    /* Fix for episode metrics boxes */
-    .gr-form {
-        background-color: #1a1a1a !important;
-        border: 1px solid #2a2a2a !important;
-        border-radius: 8px !important;
-        padding: 15px !important;
-    }
-
-    /* Row and column spacing */
-    .gr-row {
-        gap: 20px !important;
-        margin-bottom: 20px !important;
-    }
-
-    .gr-column {
+    
+    /* Fix row and column backgrounds */
+    .gr-row, .gr-column, .gr-column > div {
         background-color: #0a0a0a !important;
     }
-
-    /* Status badges */
-    .status-text {
-        color: #ffffff !important;
+    
+    /* Specific fix for the white containers you're seeing */
+    .gr-form, .gr-panel, .gr-box, [class*="block"], [class*="panel"] {
+        background-color: #1a1a1a !important;
+        border: 1px solid #2a2a2a !important;
     }
-
+    
+    /* Fix the episode metrics boxes */
+    .gr-number .gr-box, .gr-textbox .gr-box {
+        background-color: #2a2a2a !important;
+    }
+    
+    /* Remove any white backgrounds */
+    [style*="background-color: white"],
+    [style*="background-color: #fff"],
+    [style*="background-color: #ffffff"] {
+        background-color: #1a1a1a !important;
+    }
+    
+    /* Container spacing */
+    .gradio-container {
+        max-width: 1400px !important;
+        margin: auto !important;
+        padding: 20px !important;
+    }
+    
     /* Scrollbar */
     ::-webkit-scrollbar {
         width: 8px;
-        height: 8px;
+        background-color: #1a1a1a;
     }
-
+    
     ::-webkit-scrollbar-track {
         background: #1a1a1a;
     }
-
+    
     ::-webkit-scrollbar-thumb {
         background: #4a4a4a;
         border-radius: 4px;
     }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: #5a5a5a;
-    }
-
-    /* Accordion and tabs */
-    .gr-accordion, .gr-tabs {
-        background-color: #0a0a0a !important;
-        color: #ffffff !important;
-    }
-
-    /* Info text */
-    .gr-info {
-        color: #9ca3af !important;
-    }
-
-    /* Success/Error messages */
-    .success-text {
-        color: #10b981 !important;
-    }
-
-    .error-text {
-        color: #ef4444 !important;
-    }
-
-    /* Sensor data table specific */
-    .markdown-text table {
-        width: 100% !important;
-        background-color: #1a1a1a !important;
-    }
-
-    .markdown-text th {
-        background-color: #2a2a2a !important;
-        padding: 10px !important;
-    }
-
-    .markdown-text td {
-        padding: 8px !important;
-    }
-
-    /* Responsive design */
-    @media (max-width: 768px) {
-        .gradio-container {
-            padding: 10px !important;
-        }
-        
-        .gr-row {
-            flex-direction: column !important;
-            gap: 15px !important;
-        }
-    }
-    """
+    """,
+    analytics_enabled=False
 ) as demo:
     
     gr.Markdown("# ⛏️ SafeDig: Mining Safety RL Environment")
