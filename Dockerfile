@@ -3,5 +3,5 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-EXPOSE 8000 7860
-CMD python app.py & sleep 3 && python gradio_ui.py
+EXPOSE 7860
+CMD ["python", "gradio_ui.py"]
