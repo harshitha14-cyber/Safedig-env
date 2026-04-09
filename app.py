@@ -26,3 +26,12 @@ def state():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/")
+def root():
+    return {
+        "name": "SafeDig RL Environment",
+        "status": "running",
+        "docs": "/docs",
+        "endpoints": ["/reset", "/step", "/state", "/health"]
+    }
