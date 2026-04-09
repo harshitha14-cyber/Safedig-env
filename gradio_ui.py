@@ -319,5 +319,9 @@ with gr.Blocks(title="SafeDig RL Environment", theme=gr.themes.Soft()) as demo:
 # Mount Gradio on the same FastAPI app
 app = gr.mount_gradio_app(app, demo, path="/")
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the server script"""
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
