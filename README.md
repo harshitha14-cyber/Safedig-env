@@ -1,3 +1,13 @@
+---
+title: SafeDig Env
+emoji: ⛏️
+colorFrom: yellow
+colorTo: red
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # SafeDig Agent — RL-based Hazardous Task Safety Checker
 
 An OpenEnv environment where an AI agent decides whether it is safe to perform a dangerous digging/mining task based on sensor readings.
