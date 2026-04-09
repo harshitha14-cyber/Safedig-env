@@ -562,34 +562,196 @@ with gr.Blocks(
     title="SafeDig RL Environment",
     theme=gr.themes.Soft(),
     css="""
+    /* Dark mode background */
     .gradio-container { 
-        max-width: 1200px; 
-        margin: auto;
-        background-color: #1a1a1a !important;
+        max-width: 1400px !important;
+        margin: auto !important;
+        background-color: #0a0a0a !important;
+        padding: 20px !important;
     }
+
     body, .gradio-container, .gr-box, .gr-form, .gr-panel {
-        background-color: #1a1a1a !important;
+        background-color: #0a0a0a !important;
     }
-    .gr-box, .gr-form, .gr-panel, .main {
-        background-color: #1a1a1a !important;
-    }
-    label, span, div, p, h1, h2, h3, h4, h5, .markdown-text {
+
+    /* Force all text to be white */
+    label, span, div, p, li, .gr-form, .gr-box, .gr-panel, .prose, .markdown-text {
         color: #ffffff !important;
     }
+
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+
+    /* Markdown content */
+    .markdown-text p, .markdown-text li, .markdown-text span {
+        color: #e0e0e0 !important;
+    }
+
+    /* Tables */
     table, th, td {
         color: #ffffff !important;
-        border-color: #ffffff !important;
-        background-color: #2a2a2a !important;
+        border-color: #4a4a4a !important;
+        background-color: #1a1a1a !important;
     }
+
+    th {
+        background-color: #2a2a2a !important;
+        font-weight: 600 !important;
+    }
+
+    td {
+        background-color: #1a1a1a !important;
+    }
+
+    /* Input fields */
     input, textarea, select {
         background-color: #2a2a2a !important;
         color: #ffffff !important;
+        border: 1px solid #4a4a4a !important;
     }
+
+    input:focus, textarea:focus, select:focus {
+        border-color: #2563eb !important;
+        outline: none !important;
+    }
+
+    /* Labels for inputs */
+    label, .gr-label {
+        color: #ffffff !important;
+        font-weight: 500 !important;
+    }
+
+    /* Buttons */
     .gr-button {
         background-color: #3a3a3a !important;
+        color: #ffffff !important;
+        border: none !important;
+        font-weight: 500 !important;
     }
+
+    .gr-button:hover {
+        background-color: #4a4a4a !important;
+        transform: translateY(-1px) !important;
+    }
+
     .gr-button-primary {
         background-color: #2563eb !important;
+    }
+
+    .gr-button-primary:hover {
+        background-color: #3b82f6 !important;
+    }
+
+    /* Radio buttons */
+    .gr-radio-group {
+        background-color: #1a1a1a !important;
+    }
+
+    .gr-radio-group label {
+        color: #ffffff !important;
+    }
+
+    /* Number displays */
+    .gr-number {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+    }
+
+    /* Textbox */
+    .gr-textbox {
+        background-color: #1a1a1a !important;
+    }
+
+    /* Fix for episode metrics boxes */
+    .gr-form {
+        background-color: #1a1a1a !important;
+        border: 1px solid #2a2a2a !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+    }
+
+    /* Row and column spacing */
+    .gr-row {
+        gap: 20px !important;
+        margin-bottom: 20px !important;
+    }
+
+    .gr-column {
+        background-color: #0a0a0a !important;
+    }
+
+    /* Status badges */
+    .status-text {
+        color: #ffffff !important;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #4a4a4a;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #5a5a5a;
+    }
+
+    /* Accordion and tabs */
+    .gr-accordion, .gr-tabs {
+        background-color: #0a0a0a !important;
+        color: #ffffff !important;
+    }
+
+    /* Info text */
+    .gr-info {
+        color: #9ca3af !important;
+    }
+
+    /* Success/Error messages */
+    .success-text {
+        color: #10b981 !important;
+    }
+
+    .error-text {
+        color: #ef4444 !important;
+    }
+
+    /* Sensor data table specific */
+    .markdown-text table {
+        width: 100% !important;
+        background-color: #1a1a1a !important;
+    }
+
+    .markdown-text th {
+        background-color: #2a2a2a !important;
+        padding: 10px !important;
+    }
+
+    .markdown-text td {
+        padding: 8px !important;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .gradio-container {
+            padding: 10px !important;
+        }
+        
+        .gr-row {
+            flex-direction: column !important;
+            gap: 15px !important;
+        }
     }
     """
 ) as demo:
@@ -597,9 +759,10 @@ with gr.Blocks(
     gr.Markdown("# ⛏️ SafeDig: Mining Safety RL Environment")
     gr.Markdown("Real-time decision-making for hazardous mining operations. Help the agent learn to make safe choices.")
     
-    # Row 1: Controls (Left) and Live Sensor Data (Right)
-    with gr.Row():
-        with gr.Column(scale=1):
+    # Main row with equal width columns
+    with gr.Row(equal_height=False):
+        # Left Column - Controls
+        with gr.Column(scale=1, min_width=400):
             gr.Markdown("### 🎯 Controls")
             difficulty = gr.Radio(
                 ["easy", "medium", "hard"],
@@ -623,20 +786,26 @@ with gr.Blocks(
             action_btn = gr.Button("▶️ Execute Action", variant="primary", size="lg")
             result_display = gr.Markdown("*Result will appear here*")
         
-        with gr.Column(scale=1):
+        # Right Column - Live Sensor Data
+        with gr.Column(scale=1, min_width=500):
             gr.Markdown("### 📈 Live Sensor Data")
             sensor_display = gr.Markdown("*Initialize environment to see sensor readings*")
     
-    # Row 2: Episode Metrics (below Execute Action button)
+    # Episode Metrics Section (Full width below)
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### 📊 Episode Metrics")
-            reward_display = gr.Number(label="Cumulative Reward", value=0.0, interactive=False)
-            steps_display = gr.Number(label="Steps Taken", value=0, interactive=False)
-            accidents_display = gr.Number(label="Accidents", value=0, interactive=False)
-            status_display = gr.Textbox(label="Status", value="Not initialized", interactive=False)
+            with gr.Row():
+                with gr.Column(scale=1):
+                    reward_display = gr.Number(label="Cumulative Reward", value=0.0, interactive=False)
+                with gr.Column(scale=1):
+                    steps_display = gr.Number(label="Steps Taken", value=0, interactive=False)
+                with gr.Column(scale=1):
+                    accidents_display = gr.Number(label="Accidents", value=0, interactive=False)
+                with gr.Column(scale=1):
+                    status_display = gr.Textbox(label="Status", value="Not initialized", interactive=False)
     
-    # Row 3: Baseline Agent
+    # Baseline Agent Section
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### 🤖 Run Baseline Agent")
@@ -649,7 +818,7 @@ with gr.Blocks(
             baseline_btn = gr.Button("🚀 Run Baseline Agent", variant="secondary")
             baseline_result = gr.Markdown()
     
-    # Event handlers
+    # Event handlers (keep these exactly as they are)
     init_btn.click(
         reset_environment,
         inputs=difficulty,
