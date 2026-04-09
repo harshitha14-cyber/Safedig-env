@@ -628,6 +628,7 @@ with gr.Blocks(
     
     th {
         background-color: #2a2a2a !important;
+        color: #ffffff !important;
     }
     
     /* Fix buttons */
@@ -639,6 +640,8 @@ with gr.Blocks(
     
     .gr-button-primary {
         background-color: #2563eb !important;
+        color: #ffffff !important;
+
     }
     
     .gr-button-primary:hover {
