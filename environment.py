@@ -1,4 +1,5 @@
-import uuid, random
+import uuid
+import random
 from models import SafeDigAction, SafeDigObservation, SafeDigState
 
 THRESHOLDS = {
@@ -13,47 +14,61 @@ class SafeDigEnvironment:
     def __init__(self):
         self._state = SafeDigState()
         self._obs = None
+        self._current_scenario = {}
 
-    def _generate_scenario(self, difficulty="easy"):
+    def _generate_scenario(self, difficulty="easy") -> dict:
         """Generate a sensor snapshot. Hard scenarios have borderline values."""
         if difficulty == "easy":
             # Clearly safe OR clearly dangerous
             safe = random.random() > 0.5
             if safe:
-                return dict(gas_co_ppm=10, gas_h2s_ppm=2, methane_pct=0.1,
-                            roof_stability=0.9, earthquake_risk=0.05,
-                            ventilation_on=True, support_beams_ok=True,
-                            last_near_miss_days=30)
+                return {
+                    "gas_co_ppm": 10.0,
+                    "gas_h2s_ppm": 2.0,
+                    "methane_pct": 0.1,
+                    "roof_stability": 0.9,
+                    "earthquake_risk": 0.05,
+                    "ventilation_on": True,
+                    "support_beams_ok": True,
+                    "last_near_miss_days": 30
+                }
             else:
-                return dict(gas_co_ppm=90, gas_h2s_ppm=25, methane_pct=2.0,
-                            roof_stability=0.2, earthquake_risk=0.8,
-                            ventilation_on=False, support_beams_ok=False,
-                            last_near_miss_days=1)
+                return {
+                    "gas_co_ppm": 90.0,
+                    "gas_h2s_ppm": 25.0,
+                    "methane_pct": 2.0,
+                    "roof_stability": 0.2,
+                    "earthquake_risk": 0.8,
+                    "ventilation_on": False,
+                    "support_beams_ok": False,
+                    "last_near_miss_days": 1
+                }
 
         elif difficulty == "medium":
-            return dict(
-                gas_co_ppm=random.uniform(20, 80),
-                gas_h2s_ppm=random.uniform(3, 22),
-                methane_pct=random.uniform(0.3, 1.8),
-                roof_stability=random.uniform(0.35, 0.85),
-                earthquake_risk=random.uniform(0.1, 0.7),
-                ventilation_on=random.choice([True, False]),
-                support_beams_ok=random.choice([True, True, False]),
-                last_near_miss_days=random.randint(1, 15)
-            )
+            return {
+                "gas_co_ppm": random.uniform(20, 80),
+                "gas_h2s_ppm": random.uniform(3, 22),
+                "methane_pct": random.uniform(0.3, 1.8),
+                "roof_stability": random.uniform(0.35, 0.85),
+                "earthquake_risk": random.uniform(0.1, 0.7),
+                "ventilation_on": random.choice([True, False]),
+                "support_beams_ok": random.choice([True, True, False]),
+                "last_near_miss_days": random.randint(1, 15)
+            }
         else:  # hard — borderline everything
-            return dict(
-                gas_co_ppm=random.uniform(30, 45),
-                gas_h2s_ppm=random.uniform(4, 7),
-                methane_pct=random.uniform(0.4, 0.7),
-                roof_stability=random.uniform(0.55, 0.75),
-                earthquake_risk=random.uniform(0.18, 0.32),
-                ventilation_on=True,
-                support_beams_ok=random.choice([True, False]),
-                last_near_miss_days=random.randint(3, 10)
-            )
+            return {
+                "gas_co_ppm": random.uniform(30, 45),
+                "gas_h2s_ppm": random.uniform(4, 7),
+                "methane_pct": random.uniform(0.4, 0.7),
+                "roof_stability": random.uniform(0.55, 0.75),
+                "earthquake_risk": random.uniform(0.18, 0.32),
+                "ventilation_on": True,
+                "support_beams_ok": random.choice([True, False]),
+                "last_near_miss_days": random.randint(3, 10)
+            }
 
-    def _is_actually_dangerous(self, s) -> bool:
+    def _is_actually_dangerous(self, s: dict) -> bool:
+        """Check if conditions are actually dangerous based on thresholds."""
         return (
             s["gas_co_ppm"] > THRESHOLDS["gas_co_ppm"]["danger"] or
             s["gas_h2s_ppm"] > THRESHOLDS["gas_h2s_ppm"]["danger"] or
@@ -63,7 +78,8 @@ class SafeDigEnvironment:
             not s["support_beams_ok"]
         )
 
-    def reset(self, difficulty="easy") -> SafeDigObservation:
+    def reset(self, difficulty: str = "easy") -> SafeDigObservation:
+        """Reset environment and return initial observation."""
         self._current_scenario = self._generate_scenario(difficulty)
         self._state = SafeDigState(
             episode_id=str(uuid.uuid4()),
@@ -71,12 +87,14 @@ class SafeDigEnvironment:
         )
         return SafeDigObservation(
             **self._current_scenario,
-            reward=0.0, done=False,
+            reward=0.0,
+            done=False,
             accident_occurred=False,
             message="New shift starting. Assess the site."
         )
 
     def step(self, action: SafeDigAction) -> SafeDigObservation:
+        """Take a step in the environment."""
         s = self._current_scenario
         dangerous = self._is_actually_dangerous(s)
         reward = 0.0
@@ -133,4 +151,5 @@ class SafeDigEnvironment:
 
     @property
     def state(self) -> SafeDigState:
+        """Get current environment state."""
         return self._state
