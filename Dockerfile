@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN pip install -r server/requirement.txt
+RUN pip install -r server/requirements.txt
 RUN pip install -e .
 
 # Set Python path
