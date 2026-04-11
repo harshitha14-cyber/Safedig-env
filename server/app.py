@@ -1,6 +1,10 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import gradio as gr
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from environment import SafeDigEnvironment
@@ -20,17 +24,27 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    return RedirectResponse(url="/ui")
+
+@app.get("/api")
+async def api_info():
     return {
         "name": "SafeDig RL Environment",
         "status": "running",
-        "endpoints": ["/reset", "/step", "/state", "/health"]
+        "endpoints": {
+            "reset": "/api/reset",
+            "step": "/api/step",
+            "state": "/api/state",
+            "health": "/api/health",
+            "info": "/api/info"
+        }
     }
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "ok"}
 
-@app.get("/info")
+@app.get("/api/info")
 async def info():
     return {
         "name": "SafeDig Environment",
@@ -38,7 +52,7 @@ async def info():
         "actions": ["approve", "postpone", "scale_down", "mandate_safety"]
     }
 
-@app.post("/reset")
+@app.post("/api/reset")
 async def reset(request: Request):
     try:
         body = await request.json()
@@ -48,7 +62,7 @@ async def reset(request: Request):
     obs = env.reset(difficulty=difficulty)
     return JSONResponse(content=obs.model_dump())
 
-@app.post("/step")
+@app.post("/api/step")
 async def step(request: Request):
     body = await request.json()
     decision = body.get("decision", "postpone")
@@ -57,27 +71,26 @@ async def step(request: Request):
     result = env.step(action)
     return JSONResponse(content=result.model_dump())
 
-@app.get("/state")
+@app.get("/api/state")
 async def state():
     return JSONResponse(content=env.state.model_dump())
-
 
 # ========== GRADIO UI ==========
 def format_sensors(obs: dict) -> str:
     if not obs:
         return "No data"
     md = "| Sensor | Value | Status |\n|--------|-------|--------|\n"
-    co_status = "🔴 DANGER" if obs['gas_co_ppm'] > 70 else ("⚠️ CAUTION" if obs['gas_co_ppm'] > 35 else "✅ SAFE")
-    h2s_status = "🔴 DANGER" if obs['gas_h2s_ppm'] > 20 else ("⚠️ CAUTION" if obs['gas_h2s_ppm'] > 5 else "✅ SAFE")
-    methane_status = "🔴 DANGER" if obs['methane_pct'] > 1.5 else ("⚠️ CAUTION" if obs['methane_pct'] > 0.5 else "✅ SAFE")
-    roof_status = "🔴 DANGER" if obs['roof_stability'] < 0.4 else ("⚠️ CAUTION" if obs['roof_stability'] < 0.7 else "✅ SAFE")
-    quake_status = "🔴 DANGER" if obs['earthquake_risk'] > 0.6 else ("⚠️ CAUTION" if obs['earthquake_risk'] > 0.2 else "✅ SAFE")
+    co_status = '🔴 DANGER' if obs['gas_co_ppm'] > 70 else ('⚠️ CAUTION' if obs['gas_co_ppm'] > 35 else '✅ SAFE')
+    h2s_status = '🔴 DANGER' if obs['gas_h2s_ppm'] > 20 else ('⚠️ CAUTION' if obs['gas_h2s_ppm'] > 5 else '✅ SAFE')
+    methane_status = '🔴 DANGER' if obs['methane_pct'] > 1.5 else ('⚠️ CAUTION' if obs['methane_pct'] > 0.5 else '✅ SAFE')
+    roof_status = '🔴 DANGER' if obs['roof_stability'] < 0.4 else ('⚠️ CAUTION' if obs['roof_stability'] < 0.7 else '✅ SAFE')
+    quake_status = '🔴 DANGER' if obs['earthquake_risk'] > 0.6 else ('⚠️ CAUTION' if obs['earthquake_risk'] > 0.2 else '✅ SAFE')
 
-    md += f"| CO Gas | {obs['gas_co_ppm']} ppm | {co_status} |\n"
-    md += f"| H2S Gas | {obs['gas_h2s_ppm']} ppm | {h2s_status} |\n"
-    md += f"| Methane | {obs['methane_pct']}% | {methane_status} |\n"
-    md += f"| Roof Stability | {obs['roof_stability']} | {roof_status} |\n"
-    md += f"| Earthquake Risk | {obs['earthquake_risk']} | {quake_status} |\n"
+    md += f"| CO Gas | {obs['gas_co_ppm']:.1f} ppm | {co_status} |\n"
+    md += f"| H2S Gas | {obs['gas_h2s_ppm']:.1f} ppm | {h2s_status} |\n"
+    md += f"| Methane | {obs['methane_pct']:.2f}% | {methane_status} |\n"
+    md += f"| Roof Stability | {obs['roof_stability']:.2f} | {roof_status} |\n"
+    md += f"| Earthquake Risk | {obs['earthquake_risk']:.2f} | {quake_status} |\n"
     md += f"| Ventilation | {'ON ✅' if obs['ventilation_on'] else 'OFF ❌'} | {'✅' if obs['ventilation_on'] else '🔴'} |\n"
     md += f"| Support Beams | {'OK ✅' if obs['support_beams_ok'] else 'BAD ❌'} | {'✅' if obs['support_beams_ok'] else '🔴'} |\n"
     md += f"| Last Near Miss | {obs['last_near_miss_days']} days ago | {'⚠️' if obs['last_near_miss_days'] < 7 else '✅'} |\n"
@@ -96,14 +109,19 @@ def act_ui(decision: str, reasoning: str):
     action = SafeDigAction(decision=decision, reasoning=reasoning)
     result = env.step(action)
     current_obs = result.model_dump()
+    
+    # Get the message from the result
+    message = current_obs.get("message", "")
+    
     return (
         format_sensors(current_obs),
         current_obs["reward"],
         env.state.step_count,
         env.state.accidents,
-        "Done ✅" if current_obs["done"] else f"In Progress — {current_obs['message']}"
+        f"{'✅ Done' if current_obs['done'] else '🔄 In Progress'} — {message}"
     )
 
+# Create Gradio UI
 with gr.Blocks(title="SafeDig RL Environment", theme=gr.themes.Soft()) as demo:
     gr.Markdown("# ⛏️ SafeDig: Mining Safety RL Environment")
     gr.Markdown("Real-time decision-making for hazardous mining operations.")
@@ -151,12 +169,11 @@ with gr.Blocks(title="SafeDig RL Environment", theme=gr.themes.Soft()) as demo:
         outputs=[sensor_display, reward_display, steps_display, accidents_display, status_display]
     )
 
-# Mount Gradio on FastAPI at root
+# Mount Gradio on FastAPI
 app = gr.mount_gradio_app(app, demo, path="/ui")
 
 def main():
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 
 if __name__ == "__main__":
     main()

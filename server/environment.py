@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import uuid
 import random
 from models import SafeDigAction, SafeDigObservation, SafeDigState
@@ -6,8 +10,8 @@ THRESHOLDS = {
     "gas_co_ppm":       {"safe": 35,  "danger": 70},
     "gas_h2s_ppm":      {"safe": 5,   "danger": 20},
     "methane_pct":      {"safe": 0.5, "danger": 1.5},
-    "roof_stability":   {"safe": 0.7, "danger": 0.4},  # lower = worse
-    "earthquake_risk":  {"safe": 0.2, "danger": 0.6},  # higher = worse
+    "roof_stability":   {"safe": 0.7, "danger": 0.4},
+    "earthquake_risk":  {"safe": 0.2, "danger": 0.6},
 }
 
 class SafeDigEnvironment:
@@ -78,6 +82,18 @@ class SafeDigEnvironment:
             not s["support_beams_ok"]
         )
 
+    def _is_caution_zone(self, s: dict) -> bool:
+        """Check if conditions are in caution zone (between safe and danger)."""
+        return (
+            (THRESHOLDS["gas_co_ppm"]["safe"] < s["gas_co_ppm"] <= THRESHOLDS["gas_co_ppm"]["danger"]) or
+            (THRESHOLDS["gas_h2s_ppm"]["safe"] < s["gas_h2s_ppm"] <= THRESHOLDS["gas_h2s_ppm"]["danger"]) or
+            (THRESHOLDS["methane_pct"]["safe"] < s["methane_pct"] <= THRESHOLDS["methane_pct"]["danger"]) or
+            (THRESHOLDS["roof_stability"]["danger"] <= s["roof_stability"] < THRESHOLDS["roof_stability"]["safe"]) or
+            (THRESHOLDS["earthquake_risk"]["safe"] < s["earthquake_risk"] <= THRESHOLDS["earthquake_risk"]["danger"]) or
+            (not s["ventilation_on"] and s["gas_co_ppm"] > 20) or
+            (not s["support_beams_ok"] and s["roof_stability"] < 0.6)
+        )
+
     def reset(self, difficulty: str = "easy") -> SafeDigObservation:
         """Reset environment and return initial observation."""
         self._current_scenario = self._generate_scenario(difficulty)
@@ -97,49 +113,64 @@ class SafeDigEnvironment:
         """Take a step in the environment."""
         s = self._current_scenario
         dangerous = self._is_actually_dangerous(s)
+        caution = self._is_caution_zone(s)
         reward = 0.0
         accident = False
         done = True
+        msg = ""
 
         if action.decision == "approve":
             if dangerous:
-                reward = -50.0   # missed real danger
+                reward = -50.0
                 accident = True
                 self._state.accidents += 1
                 msg = "💥 ACCIDENT! Conditions were dangerous but task was approved."
+            elif caution:
+                reward = -10.0
+                msg = "⚠️ WARNING! Conditions are borderline (caution zone). Should have postponed or added safety measures."
             else:
                 reward = +10.0
-                msg = "✅ Correct! Conditions were safe. Task completed."
+                msg = "✅ Perfect! Conditions were safe. Task approved and completed successfully."
 
         elif action.decision == "postpone":
             if dangerous:
                 reward = +15.0
-                msg = "✅ Good call! Conditions were dangerous. Postponing was right."
+                msg = "✅ Excellent! Conditions were dangerous. Postponing was the right decision."
+            elif caution:
+                reward = +8.0
+                msg = "✅ Good call! Conditions are borderline - waiting is prudent."
             else:
-                reward = -5.0    # over-conservative
-                msg = "⚠️ Over-cautious. Conditions were actually fine."
+                reward = -5.0
+                msg = "⚠️ Over-cautious. Conditions were actually safe. Consider approving next time."
 
         elif action.decision == "scale_down":
             if dangerous:
-                reward = +8.0    # partial credit — safer than approve
-                msg = "⚠️ Partial: Conditions dangerous but scaled-down helps reduce risk."
-            else:
+                reward = +8.0
+                msg = "⚠️ Acceptable: Conditions dangerous but scaling down reduces risk. Postponing would be better."
+            elif caution:
                 reward = +5.0
-                msg = "✅ Acceptable. Minor precaution taken on safe conditions."
+                msg = "✅ Reasonable compromise. Conditions are borderline, scaling down is acceptable."
+            else:
+                reward = -2.0
+                msg = "⚠️ Unnecessary reduction. Conditions were safe, no need to scale down operations."
 
         elif action.decision == "mandate_safety":
             if dangerous:
-                reward = +12.0   # good — added protection in danger
-                msg = "✅ Smart. Mandating extra safety in risky conditions."
+                reward = +12.0
+                msg = "✅ Excellent! Mandating extra safety measures in dangerous conditions is very responsible."
+            elif caution:
+                reward = +6.0
+                msg = "✅ Good precaution. Extra safety measures in caution zone is wise but slightly overkill."
             else:
-                reward = +3.0    # slight waste but not harmful
-                msg = "⚠️ Conditions were safe, extra measures unnecessary but harmless."
+                reward = -3.0
+                msg = "⚠️ Unnecessary expense. Conditions were completely safe, extra safety measures weren't needed."
 
         self._state.step_count += 1
         self._state.total_reward += reward
 
         # Score out of 1.0 for OpenEnv grader (normalize from [-50, +15] range)
         score = (reward + 50) / 65.0
+        score = max(0.0, min(1.0, score))
 
         return SafeDigObservation(
             **s,

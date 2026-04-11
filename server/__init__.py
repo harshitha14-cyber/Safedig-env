@@ -1,1 +1,1 @@
-# SafeDig RL Environment
+"""SafeDig: Mining Safety RL Environment"""
