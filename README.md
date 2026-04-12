@@ -36,29 +36,36 @@ python main.py
 ### Test a Single Scenario
 ```bash
 # Reset environment
-curl -X POST http://localhost:8000/reset \
+curl -X POST http://localhost:7860/api/reset \
   -H "Content-Type: application/json" \
   -d '{"difficulty":"easy"}'
 
 # Take an action
-curl -X POST http://localhost:8000/step \
+curl -X POST http://localhost:7860/api/step \
   -H "Content-Type: application/json" \
   -d '{"decision":"postpone","reasoning":"gas levels too high"}'
 
 # Check current state
-curl http://localhost:8000/state
+curl http://localhost:7860/api/state
 ```
 
 ## 🏗️ Action Space
 
 The agent can take one of 4 actions:
 
-| Action | Description | Reward (if correct) | Reward (if wrong) |
-|--------|-------------|-------------------|-------------------|
-| `approve` | Approve digging task | +10.0 (safe → +1.0) | -50.0 (danger → 0.0) |
-| `postpone` | Delay task due to danger | +15.0 (danger → 1.0) | -5.0 (safe → ~0.92) |
-| `scale_down` | Reduce task scope | +8.0 (danger → 0.83) | +5.0 (safe → 0.92) |
-| `mandate_safety` | Add safety measures | +12.0 (danger → 0.94) | +3.0 (safe → 0.88) |
+| Action | Safe Zone | Caution Zone | Danger Zone |
+|--------|-----------|--------------|-------------|
+| `approve` | +10.0 (Perfect) | -10.0 (Warning!) | -50.0 (ACCIDENT) |
+| `postpone` | -5.0 (Too cautious) | +8.0 (Smart) | +15.0 (Excellent) |
+| `scale_down` | -2.0 (Unnecessary) | +5.0 (Acceptable) | +8.0 (Partial credit) |
+| `mandate_safety` | -3.0 (Wasteful) | +6.0 (Good precaution) | +12.0 (Excellent) |
+
+**Normalized scores (0-1 scale):**
+- 1.0 = Perfect decision
+- 0.8-0.99 = Good decision
+- 0.6-0.79 = Acceptable
+- 0.4-0.59 = Poor
+- <0.4 = Dangerous
 
 ## 👀 Observation Space
 
@@ -109,7 +116,7 @@ import requests
 import json
 from openai import OpenAI
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7860"
 client = OpenAI(api_key="your_key", base_url="your_api_base")
 
 # Reset environment
@@ -136,27 +143,26 @@ print(f"Reward: {result['reward']:.3f}")
 
 ```
 safedig-env/
-├── models.py          ← Pydantic models (Action, Observation, State)
-├── environment.py     ← RL logic (reset, step, rewards)
-├── app.py             ← FastAPI server
-├── inference.py       ← Baseline agent (LLM-based)
-├── main.py            ← Local testing script
-├── openenv.yaml       ← OpenEnv spec
-├── pyproject.toml     ← Project metadata
-├── requirements.txt   ← Dependencies
-├── Dockerfile         ← Container config
-└── README.md          ← This file
+├── server/
+│   ├── app.py          ← FastAPI server (moved)
+│   ├── environment.py  ← RL logic (moved)
+│   ├── models.py       ← Pydantic models (moved)
+│   └── requirements.txt
+├── inference.py        ← Baseline agent
+├── Dockerfile
+├── requirements.txt    ← Root requirements
+└── README.md
 ```
 
 ## 🔗 API Endpoints
 
 | Endpoint | Method | Body | Response |
 |----------|--------|------|----------|
-| `/reset` | POST | `{"difficulty": "easy\|medium\|hard"}` | `Observation` (JSON) |
-| `/step` | POST | `{"decision": "...", "reasoning": "..."}` | `Observation` (JSON) |
-| `/state` | GET | — | `State` (JSON) |
-| `/health` | GET | — | `{"status": "ok"}` |
-| `/docs` | GET | — | Interactive Swagger UI |
+| `/api/reset` | POST | `{"difficulty": "easy|medium|hard"}` | `Observation` (JSON) |
+| `/api/step` | POST | `{"decision": "...", "reasoning": "..."}` | `Observation` (JSON) |
+| `/api/state` | GET | — | `State` (JSON) |
+| `/api/health` | GET | — | `{"status": "ok"}` |
+| `/api/docs` | GET | — | Interactive Swagger UI |
 
 ## 📈 Reward Normalization
 
@@ -177,7 +183,7 @@ Pass these environment variables to `inference.py`:
 export API_BASE_URL="https://api.openai.com/v1"      # LLM API endpoint
 export MODEL_NAME="gpt-4o-mini"                       # Model identifier
 export HF_TOKEN="hf_xxxxx"                            # Hugging Face token
-export ENV_URL="http://localhost:8000"                # Environment API URL
+export ENV_URL="http://localhost:7860"                # Environment API URL
 ```
 
 ## 🚀 Deployment
