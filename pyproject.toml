@@ -1,7 +1,7 @@
 [project]
 name = "safedig-env"
-version = "0.1.0"
-description = "SafeDig: Mining Safety RL Environment for Meta PyTorch Hackathon"
+version = "1.0.0"
+description = "SafeDig: Mining Safety RL Environment — Meta PyTorch OpenEnv Hackathon"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.0",
@@ -10,17 +10,14 @@ dependencies = [
     "gradio>=5.0.0",
     "requests>=2.31.0",
     "openenv-core>=0.2.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
-server = "server.app:main"
+server  = "server.app:main"
 safedig = "server.app:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-# Add this section to fix the build issue
-[tool.hatch.build.targets.wheel]
-packages = ["."]
-only-include = ["*.py"]

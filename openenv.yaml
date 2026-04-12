@@ -1,29 +1,106 @@
-name: safedig-agent
+name: safedig-env
 version: "1.0.0"
 description: >
-  A safety-critical RL environment where an agent decides whether
-  it is safe to approve, postpone, or modify a hazardous digging task
-  based on sensor readings (gas, stability, earthquake risk, equipment).
+  A safety-critical RL environment where an AI agent makes high-stakes
+  decisions in hazardous mining operations across three task types:
+  (1) Static Safety Decision, (2) Sensor Reliability Detection,
+  (3) Emergency Rescue Coordination.
+
 tasks:
-  - id: easy
+  - id: safety_decision_easy
+    task: safety_decision
     description: Clearly safe or clearly dangerous scenarios
     difficulty: easy
-  - id: medium
-    description: Mixed conditions requiring careful judgment
+    reward_range: [0.0, 1.0]
+
+  - id: safety_decision_medium
+    task: safety_decision
+    description: Mixed conditions requiring careful sensor analysis
     difficulty: medium
-  - id: hard
-    description: Borderline sensor values — requires nuanced reasoning
+    reward_range: [0.0, 1.0]
+
+  - id: safety_decision_hard
+    task: safety_decision
+    description: Borderline sensor values requiring nuanced judgment
     difficulty: hard
-action_space:
-  type: discrete
-  choices: [approve, postpone, scale_down, mandate_safety]
+    reward_range: [0.0, 1.0]
+
+  - id: sensor_reliability_easy
+    task: sensor_reliability
+    description: Clearly broken or clearly accurate sensors
+    difficulty: easy
+    reward_range: [0.0, 1.0]
+
+  - id: sensor_reliability_medium
+    task: sensor_reliability
+    description: Partially conflicting readings with moderate confidence
+    difficulty: medium
+    reward_range: [0.0, 1.0]
+
+  - id: sensor_reliability_hard
+    task: sensor_reliability
+    description: Highly ambiguous sensor conflicts near all thresholds
+    difficulty: hard
+    reward_range: [0.0, 1.0]
+
+  - id: rescue_coordination_easy
+    task: rescue_coordination
+    description: Few trapped, high oxygen, low structural risk
+    difficulty: easy
+    reward_range: [0.0, 1.0]
+
+  - id: rescue_coordination_medium
+    task: rescue_coordination
+    description: Moderate casualties risk with limited resources
+    difficulty: medium
+    reward_range: [0.0, 1.0]
+
+  - id: rescue_coordination_hard
+    task: rescue_coordination
+    description: Many trapped, depleted oxygen, imminent collapse
+    difficulty: hard
+    reward_range: [0.0, 1.0]
+
 observation_space:
-  - gas_co_ppm: float
-  - gas_h2s_ppm: float
-  - methane_pct: float
-  - roof_stability: float
-  - earthquake_risk: float
-  - ventilation_on: bool
-  - support_beams_ok: bool
-  - last_near_miss_days: int
+  safety_decision:
+    - gas_co_ppm: float        # Carbon monoxide ppm
+    - gas_h2s_ppm: float       # Hydrogen sulfide ppm
+    - methane_pct: float       # Methane concentration %
+    - roof_stability: float    # 0.0 (collapsed) to 1.0 (perfect)
+    - earthquake_risk: float   # 0.0 to 1.0
+    - ventilation_on: bool
+    - support_beams_ok: bool
+    - last_near_miss_days: int
+
+  sensor_reliability:
+    - primary_co_ppm: float
+    - secondary_co_ppm: float
+    - primary_methane_pct: float
+    - secondary_methane_pct: float
+    - sensor_age_days: int
+    - conflict_detected: bool
+    - confidence_score: float
+    - ventilation_on: bool
+
+  rescue_coordination:
+    - trapped_personnel: int
+    - oxygen_remaining_pct: float
+    - path_obstruction: float
+    - structural_risk: float
+    - available_resources: int
+    - time_elapsed_minutes: int
+
+action_space:
+  safety_decision:
+    type: discrete
+    choices: [approve, postpone, scale_down, mandate_safety]
+
+  sensor_reliability:
+    type: discrete
+    choices: [trust_and_proceed, request_recalibration, cross_reference, emergency_stop]
+
+  rescue_coordination:
+    type: discrete
+    choices: [deploy_robotic_drill, manual_extraction, seal_section, call_for_support]
+
 reward_range: [0.0, 1.0]
