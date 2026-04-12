@@ -158,11 +158,11 @@ safedig-env/
 
 | Endpoint | Method | Body | Response |
 |----------|--------|------|----------|
-| `/api/reset` | POST | `{"difficulty": "easy|medium|hard"}` | `Observation` (JSON) |
-| `/api/step` | POST | `{"decision": "...", "reasoning": "..."}` | `Observation` (JSON) |
-| `/api/state` | GET | — | `State` (JSON) |
-| `/api/health` | GET | — | `{"status": "ok"}` |
-| `/api/docs` | GET | — | Interactive Swagger UI |
+| `/reset` | POST | `{"difficulty": "easy|medium|hard"}` | `Observation` (JSON) |
+| `/step` | POST | `{"decision": "...", "reasoning": "..."}` | `Observation` (JSON) |
+| `/state` | GET | — | `State` (JSON) |
+| `/health` | GET | — | `{"status": "ok"}` |
+| `/docs` | GET | — | Interactive Swagger UI |
 
 ## 📈 Reward Normalization
 
