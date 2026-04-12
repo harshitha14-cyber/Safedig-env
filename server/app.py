@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 import gradio as gr
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -22,9 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return RedirectResponse(url="/ui")
 
 @app.get("/api")
 async def api_info():
@@ -170,7 +163,7 @@ with gr.Blocks(title="SafeDig RL Environment") as demo:
     )
 
 # Mount Gradio on FastAPI
-app = gr.mount_gradio_app(app, demo, path="/ui")
+app = gr.mount_gradio_app(app, demo, path="/")
 
 def main():
     uvicorn.run(app, host="0.0.0.0", port=7860)
