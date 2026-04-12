@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import gradio as gr
 from fastapi import FastAPI, Request
@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from environment import SafeDigEnvironment
-from models import SafeDigAction, SafeDigObservation
+from server.models import SafeDigAction, SafeDigObservation
 
 env = SafeDigEnvironment()
 
