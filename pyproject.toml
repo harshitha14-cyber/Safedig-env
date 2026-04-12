@@ -13,6 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
+server = "server.app:main"
 safedig = "server.app:main"
 
 [build-system]
