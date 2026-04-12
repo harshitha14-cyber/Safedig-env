@@ -2,19 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy requirements
-COPY server/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy everything from your project
+COPY . .
 
-# Copy entire server folder
-COPY server/ ./server/
+# Install dependencies
+RUN pip install --no-cache-dir -r server/requirements.txt
 
-# Debug: Verify files are copied
-RUN ls -la ./server/
+# Debug: Show what files are where
+RUN echo "=== Root directory ===" && ls -la
+RUN echo "=== Server directory ===" && ls -la server/
 
 # Set Python path
 ENV PYTHONPATH=/app
 
 EXPOSE 7860
 
+# Run with python directly
 CMD ["python", "server/app.py"]
