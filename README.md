@@ -36,17 +36,17 @@ python main.py
 ### Test a Single Scenario
 ```bash
 # Reset environment
-curl -X POST http://localhost:7860/api/reset \
+curl -X POST http://localhost:7860/reset \
   -H "Content-Type: application/json" \
   -d '{"difficulty":"easy"}'
 
 # Take an action
-curl -X POST http://localhost:7860/api/step \
+curl -X POST http://localhost:7860/step \
   -H "Content-Type: application/json" \
   -d '{"decision":"postpone","reasoning":"gas levels too high"}'
 
 # Check current state
-curl http://localhost:7860/api/state
+curl http://localhost:7860/state
 ```
 
 ## 🏗️ Action Space

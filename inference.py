@@ -30,7 +30,7 @@ def run_episode(difficulty: str) -> Dict[str, Any]:
     # Reset environment
     try:
         reset_response = requests.post(
-            f"{ENV_URL}/api/reset",
+            f"{ENV_URL}/reset",
             json={"difficulty": difficulty},
             timeout=10
         )
@@ -97,7 +97,7 @@ Should the digging task be approved today?"""
     # Step environment
     try:
         step_response = requests.post(
-            f"{ENV_URL}/api/step",
+            f"{ENV_URL}/step",
             json=parsed,
             timeout=10
         )
@@ -109,7 +109,7 @@ Should the digging task be approved today?"""
 
     # Get state
     try:
-        state_response = requests.get(f"{ENV_URL}/api/state", timeout=10)
+        state_response = requests.get(f"{ENV_URL}/state", timeout=10)
         state_response.raise_for_status()
         state = state_response.json()
     except requests.exceptions.RequestException as e:

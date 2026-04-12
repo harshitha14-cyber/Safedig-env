@@ -25,11 +25,11 @@ async def api_info():
         "name": "SafeDig RL Environment",
         "status": "running",
         "endpoints": {
-            "reset": "/api/reset",
-            "step": "/api/step",
-            "state": "/api/state",
-            "health": "/api/health",
-            "info": "/api/info"
+            "reset": "/reset",
+            "step": "/step",
+            "state": "/state",
+            "health": "/health",
+            "info": "/info"
         }
     }
 
@@ -45,7 +45,7 @@ async def info():
         "actions": ["approve", "postpone", "scale_down", "mandate_safety"]
     }
 
-@app.post("/api/reset")
+@app.post("/reset")
 async def reset(request: Request):
     try:
         body = await request.json()
@@ -55,7 +55,7 @@ async def reset(request: Request):
     obs = env.reset(difficulty=difficulty)
     return JSONResponse(content=obs.model_dump())
 
-@app.post("/api/step")
+@app.post("/step")
 async def step(request: Request):
     body = await request.json()
     decision = body.get("decision", "postpone")
@@ -64,7 +64,7 @@ async def step(request: Request):
     result = env.step(action)
     return JSONResponse(content=result.model_dump())
 
-@app.get("/api/state")
+@app.get("/state")
 async def state():
     return JSONResponse(content=env.state.model_dump())
 
