@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-safedig = "safedig_env.app:main"
+safedig = "server.app:main"
 
 [build-system]
 requires = ["hatchling"]
