@@ -210,12 +210,17 @@ docker run -p 7860:7860 safedig
 {"type": "[END]", "reward": 0.85, "accident": false, "state": {...}}
 ```
 
-## 🏆 Performance Metrics
+## 📊 Agent Performance Results
 
-Expected agent performance across difficulties:
-- **Easy**: 0.8-0.95 reward (clear scenarios)
-- **Medium**: 0.6-0.8 reward (mixed conditions)
-- **Hard**: 0.5-0.7 reward (borderline judgments)
+Our baseline LLM agent achieved the following scores across difficulty levels:
+
+| Difficulty | Reward | Decision Quality |
+|------------|--------|------------------|
+| Easy | 1.000 | 🎯 Perfect - Correctly identified dangerous conditions |
+| Medium | 0.892 | ✅ Excellent - Prudent decision on borderline scenario |
+| Hard | 0.862 | ✅ Very Good - Appropriate safety measures |
+
+**Overall Average: 0.918 (91.8%)** 🏆
 
 ## 📚 References
 

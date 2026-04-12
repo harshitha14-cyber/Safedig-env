@@ -122,7 +122,7 @@ def act_ui(decision: str, reasoning: str):
     )
 
 # Create Gradio UI
-with gr.Blocks(title="SafeDig RL Environment", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="SafeDig RL Environment") as demo:
     gr.Markdown("# ⛏️ SafeDig: Mining Safety RL Environment")
     gr.Markdown("Real-time decision-making for hazardous mining operations.")
 

@@ -12,7 +12,7 @@ RUN pip install -e .
 # Set Python path
 ENV PYTHONPATH=/app
 
-# Run the app
-CMD ["python", "server/app.py"]
-
 EXPOSE 7860
+
+# Run the app
+CMD ["python", "-m", "uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
