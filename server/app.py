@@ -42,6 +42,11 @@ async def api_info():
         }
     }
 
+@app.get("/health")
+async def health_bare():
+    """Bare /health for inference.py and hackathon validators."""
+    return {"status": "ok"}
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
