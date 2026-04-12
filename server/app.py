@@ -173,7 +173,7 @@ with gr.Blocks(title="SafeDig RL Environment") as demo:
 app = gr.mount_gradio_app(app, demo, path="/ui")
 
 def main():
-    uvicorn.run(app, host="127.0.0.1", port=7860)
+    uvicorn.run(app, host="0.0.0.0", port=7860)
 
 if __name__ == "__main__":
     main()
