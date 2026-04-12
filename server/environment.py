@@ -1,6 +1,10 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import uuid
 import random
-from server.models import SafeDigAction, SafeDigObservation, SafeDigState
+from models import SafeDigAction, SafeDigObservation, SafeDigState
 
 THRESHOLDS = {
     "gas_co_ppm":       {"safe": 35,  "danger": 70},
